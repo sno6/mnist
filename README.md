@@ -24,4 +24,4 @@ label := r.TrainingLabels.GetLabel(1)
 ```
 
 ## Example
-Working code example: `/example`
+There's also a working code example [here](example/main.go)
