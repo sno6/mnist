@@ -16,7 +16,7 @@ r, err := mnist.New(&mnist.Files{
 
 ...
 
-// Use the reader to access files & labels.
+// Use the reader to access images & labels.
 img := r.TrainingImages.GetImage(1)
 label := r.TrainingLabels.GetLabel(1)
 

@@ -51,11 +51,11 @@ type binImageCfg struct {
 
 func New(locs *Files) (*Reader, error) {
 	r := &Reader{}
-	err := r.Process(locs)
+	err := r.process(locs)
 	return r, err
 }
 
-func (r *Reader) Process(locs *Files) error {
+func (r *Reader) process(locs *Files) error {
 	var err error
 	if locs.TrainingImagesLoc != "" {
 		r.TrainingImages, err = r.readImageSet(locs.TrainingImagesLoc)
@@ -84,17 +84,10 @@ func (r *Reader) Process(locs *Files) error {
 	return nil
 }
 
-func newReaderFromFile(loc string) (io.Reader, error) {
-	return os.Open(loc)
-}
-
 func (r *Reader) readLabelSet(loc string) (*LabelSet, error) {
-	fr, err := newReaderFromFile(loc)
+	fr, err := newReaderFromFile(loc, LabelMagic)
 	if err != nil {
-		return nil, errors.Wrap(err, "readLabelset: error reading label file")
-	}
-	if err := checkMagic(fr, LabelMagic); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "readLabelSet: error reading label file")
 	}
 
 	var bc binLabelCfg
@@ -114,12 +107,9 @@ func (r *Reader) readLabelSet(loc string) (*LabelSet, error) {
 }
 
 func (r *Reader) readImageSet(loc string) (*ImageSet, error) {
-	fr, err := newReaderFromFile(loc)
+	fr, err := newReaderFromFile(loc, ImageMagic)
 	if err != nil {
 		return nil, errors.Wrap(err, "readImageSet: error reading image file")
-	}
-	if err := checkMagic(fr, ImageMagic); err != nil {
-		return nil, err
 	}
 
 	var bc binImageCfg
@@ -138,17 +128,6 @@ func (r *Reader) readImageSet(loc string) (*ImageSet, error) {
 		Cols:   int(bc.Cols),
 		Images: d,
 	}, nil
-}
-
-func checkMagic(r io.Reader, truth int32) error {
-	var magic int32
-	if err := binary.Read(r, binary.BigEndian, &magic); err != nil {
-		return err
-	}
-	if magic != truth {
-		return errMagicMismatch
-	}
-	return nil
 }
 
 func (l *LabelSet) GetLabel(offset int) uint8 {
@@ -202,4 +181,26 @@ func ToGrayScale(m [][]uint8) image.Image {
 		}
 	}
 	return img
+}
+
+func newReaderFromFile(loc string, magic int32) (io.Reader, error) {
+	r, err := os.Open(loc)
+	if err != nil {
+		return nil, errors.Wrap(err, "newReaderFromFile: error opening file")
+	}
+	if err := checkMagic(r, magic); err != nil {
+		return nil, err
+	}
+	return r, nil
+}
+
+func checkMagic(r io.Reader, truth int32) error {
+	var magic int32
+	if err := binary.Read(r, binary.BigEndian, &magic); err != nil {
+		return err
+	}
+	if magic != truth {
+		return errMagicMismatch
+	}
+	return nil
 }
